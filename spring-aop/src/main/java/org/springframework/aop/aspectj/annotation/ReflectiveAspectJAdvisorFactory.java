@@ -30,9 +30,9 @@ import org.aspectj.lang.annotation.AfterReturning;
 import org.aspectj.lang.annotation.AfterThrowing;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Before;
+import org.aspectj.lang.annotation.DeclareMixin;
 import org.aspectj.lang.annotation.DeclareParents;
 import org.aspectj.lang.annotation.Pointcut;
-
 import org.springframework.aop.Advisor;
 import org.springframework.aop.MethodBeforeAdvice;
 import org.springframework.aop.aspectj.AbstractAspectJAdvice;
@@ -42,6 +42,7 @@ import org.springframework.aop.aspectj.AspectJAfterThrowingAdvice;
 import org.springframework.aop.aspectj.AspectJAroundAdvice;
 import org.springframework.aop.aspectj.AspectJExpressionPointcut;
 import org.springframework.aop.aspectj.AspectJMethodBeforeAdvice;
+import org.springframework.aop.aspectj.DeclareMixinAdvisor;
 import org.springframework.aop.aspectj.DeclareParentsAdvisor;
 import org.springframework.aop.framework.AopConfigException;
 import org.springframework.aop.support.DefaultPointcutAdvisor;
@@ -173,7 +174,14 @@ public class ReflectiveAspectJAdvisorFactory extends AbstractAspectJAdvisorFacto
 			int declarationOrderInAspect, String aspectName) {
 
 		validate(aif.getAspectMetadata().getAspectClass());
-
+		
+		// test declare mixin annotation
+		DeclareMixin declareMixin = AnnotationUtils.findAnnotation(candidateAdviceMethod, DeclareMixin.class);
+		
+		if (declareMixin != null) {
+			return new DeclareMixinAdvisor(candidateAdviceMethod, aif.getAspectInstance(), declareMixin.value());
+		}
+		
 		AspectJExpressionPointcut ajexp =
 				getPointcut(candidateAdviceMethod, aif.getAspectMetadata().getAspectClass());
 		if (ajexp == null) {

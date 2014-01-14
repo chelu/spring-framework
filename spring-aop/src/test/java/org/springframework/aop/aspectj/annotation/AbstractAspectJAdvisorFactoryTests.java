@@ -15,15 +15,6 @@
  */
 package org.springframework.aop.aspectj.annotation;
 
-import static org.hamcrest.Matchers.instanceOf;
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertFalse;
-import static org.junit.Assert.assertNotSame;
-import static org.junit.Assert.assertSame;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
-import static org.junit.Assert.fail;
-
 import java.io.FileNotFoundException;
 import java.lang.annotation.Retention;
 import java.lang.annotation.RetentionPolicy;
@@ -42,6 +33,7 @@ import org.aspectj.lang.annotation.AfterThrowing;
 import org.aspectj.lang.annotation.Around;
 import org.aspectj.lang.annotation.Aspect;
 import org.aspectj.lang.annotation.Before;
+import org.aspectj.lang.annotation.DeclareMixin;
 import org.aspectj.lang.annotation.DeclareParents;
 import org.aspectj.lang.annotation.DeclarePrecedence;
 import org.aspectj.lang.annotation.Pointcut;
@@ -62,9 +54,14 @@ import org.springframework.tests.sample.beans.TestBean;
 import org.springframework.util.ObjectUtils;
 
 import test.aop.DefaultLockable;
+import test.aop.DefaultTargetAwareLockable;
 import test.aop.Lockable;
 import test.aop.PerTargetAspect;
+import test.aop.TargetAwareLockable;
 import test.aop.TwoAdviceAspect;
+
+import static org.hamcrest.Matchers.*;
+import static org.junit.Assert.*;
 
 /**
  * Abstract tests for AspectJAdvisorFactory.
@@ -607,6 +604,19 @@ public abstract class AbstractAspectJAdvisorFactoryTests {
 	}
 	*/
 
+	@Test
+	public void testDeclareMixinIntroduction() {
+		NotLockable notLockableTarget = new NotLockable();
+		assertFalse(notLockableTarget instanceof Lockable);
+		TargetAwareLockable lockable = (TargetAwareLockable) createProxy(notLockableTarget,
+				getFixture().getAdvisors(
+						new SingletonMetadataAwareAspectInstanceFactory(new DeclareMixinMakeLockable(),"someBean")),
+				NotLockable.class);
+		assertFalse(lockable.locked());
+		lockable.lock();
+		assertTrue(lockable.locked());
+		assertEquals(lockable, lockable.getTarget());
+	}
 
 	@Aspect("percflow(execution(* *(..)))")
 	public static class PerCflowAspect {
@@ -884,6 +894,21 @@ public abstract class AbstractAspectJAdvisorFactoryTests {
 			return 666;
 		}
 	}
+	
+	/**
+	 * Test DeclareMixin annotation
+	 * 
+	 * @author Jose Luis Martin
+	 */
+	@Aspect
+	public static class DeclareMixinMakeLockable {
+		
+		@DeclareMixin("org.springframework..*")
+		public TargetAwareLockable createLockable(Object target) {
+			return new DefaultTargetAwareLockable(target);
+		}
+	}
+
 
 }
 
@@ -1115,5 +1140,5 @@ class PerThisAspect {
 	public void countSetter() {
 		++count;
 	}
-
 }
+

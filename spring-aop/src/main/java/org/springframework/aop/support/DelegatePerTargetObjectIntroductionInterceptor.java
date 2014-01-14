@@ -1,5 +1,5 @@
 /*
- * Copyright 2002-2012 the original author or authors.
+ * Copyright 2002-2014 the original author or authors.
  *
  * Licensed under the Apache License, Version 2.0 (the "License");
  * you may not use this file except in compliance with the License.
@@ -20,7 +20,6 @@ import java.util.Map;
 import java.util.WeakHashMap;
 
 import org.aopalliance.intercept.MethodInvocation;
-
 import org.springframework.aop.DynamicIntroductionAdvice;
 import org.springframework.aop.IntroductionInterceptor;
 import org.springframework.aop.ProxyMethodInvocation;
@@ -59,20 +58,36 @@ public class DelegatePerTargetObjectIntroductionInterceptor extends Introduction
 	 */
 	private final Map<Object, Object> delegateMap = new WeakHashMap<Object, Object>();
 
-	private Class<?> defaultImplType;
+	private DelegateFactory delegateFactory;
 
 	private Class<?> interfaceType;
+	
+	public DelegatePerTargetObjectIntroductionInterceptor(final Class<?> defaultImplType, Class<?> interfaceType) {
+		this(new DelegateFactory() {
+			@Override
+			public Object createNewDelegate(Object targetObject) throws Exception {
+				return defaultImplType.newInstance();
+			}
 
-
-	public DelegatePerTargetObjectIntroductionInterceptor(Class<?> defaultImplType, Class<?> interfaceType) {
-		this.defaultImplType = defaultImplType;
+		}, interfaceType); 
+	}
+	
+	public DelegatePerTargetObjectIntroductionInterceptor(DelegateFactory delegateFactory, Class<?> interfaceType) {
+		this.delegateFactory = delegateFactory;
 		this.interfaceType = interfaceType;
-		// Create a new delegate now (but don't store it in the map).
-		// We do this for two reasons:
-		// 1) to fail early if there is a problem instantiating delegates
-		// 2) to populate the interface map once and once only
-		Object delegate = createNewDelegate();
-		implementInterfacesOnObject(delegate);
+		
+		try {
+			// Create a new delegate now (but don't store it in the map)
+			// to populate the interface map once and once only.
+			Object delegate = delegateFactory.createNewDelegate(null);
+			implementInterfacesOnObject(delegate);
+		}
+		catch (Throwable ex) {
+			// ignore, add interfaceType only.
+		}
+		
+		this.publishedInterfaces.add(interfaceType);	
+		
 		suppressInterface(IntroductionInterceptor.class);
 		suppressInterface(DynamicIntroductionAdvice.class);
 	}
@@ -122,21 +137,25 @@ public class DelegatePerTargetObjectIntroductionInterceptor extends Introduction
 				return this.delegateMap.get(targetObject);
 			}
 			else {
-				Object delegate = createNewDelegate();
+				Object delegate = createNewDelegate(targetObject);
 				this.delegateMap.put(targetObject, delegate);
 				return delegate;
 			}
 		}
 	}
 
-	private Object createNewDelegate() {
+	protected Object createNewDelegate(Object targetObject) {
 		try {
-			return this.defaultImplType.newInstance();
-		}
+			return delegateFactory.createNewDelegate(targetObject);
+		} 	
 		catch (Throwable ex) {
 			throw new IllegalArgumentException("Cannot create default implementation for '" +
-					this.interfaceType.getName() + "' mixin (" + this.defaultImplType.getName() + "): " + ex);
+					interfaceType.getName() + ": " + ex);
 		}
 	}
 
+	public interface DelegateFactory {
+		Object createNewDelegate(Object targetObject) throws Exception;
+	}
+	
 }

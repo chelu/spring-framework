@@ -64,14 +64,14 @@ public class DeclareParentsAdvisor implements IntroductionAdvisor {
 	}
 
 	/**
-	 * Private constructor to share common code between impl-based delegate and reference-based delegate
+	 * Protected constructor to share common code between impl-based delegate and reference-based delegate
 	 * (cannot use method such as init() to share common code, due the the use of final fields)
 	 * @param interfaceType static field defining the introduction
 	 * @param typePattern type pattern the introduction is restricted to
 	 * @param implementationClass implementation class
 	 * @param advice delegation advice
 	 */
-	private DeclareParentsAdvisor(Class<?> interfaceType, String typePattern, Class<?> implementationClass, Advice advice) {
+	protected DeclareParentsAdvisor(Class<?> interfaceType, String typePattern, Class<?> implementationClass, Advice advice) {
 		this.introducedInterface = interfaceType;
 		ClassFilter typePatternFilter = new TypePatternClassFilter(typePattern);
 
