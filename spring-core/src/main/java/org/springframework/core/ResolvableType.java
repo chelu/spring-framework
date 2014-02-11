@@ -84,6 +84,8 @@ public final class ResolvableType implements Serializable {
 	public static final ResolvableType NONE = new ResolvableType(null, null, null, null);
 
 	private static final ResolvableType[] EMPTY_TYPES_ARRAY = new ResolvableType[0];
+	
+	private static final WildcardRawType WILDCARD_RAW_TYPE = new WildcardRawType();
 
 	private static final ConcurrentReferenceHashMap<ResolvableType, ResolvableType> cache =
 			new ConcurrentReferenceHashMap<ResolvableType, ResolvableType>(256);
@@ -552,6 +554,16 @@ public final class ResolvableType implements Serializable {
 		}
 		if (this.type instanceof Class<?>) {
 			Class<?> typeClass = (Class<?>) this.type;
+			// check if is a raw type
+			if (this.typeProvider != null && typeClass.getTypeParameters().length > 0) {
+				Type[] typeParameters = typeClass.getTypeParameters();
+				ResolvableType[] generics = new ResolvableType[typeParameters.length];
+				for (int i = 0; i < typeParameters.length; i++) {
+					generics[i] = forType(WILDCARD_RAW_TYPE);
+				}
+				return generics;
+			}
+			
 			return forTypes(SerializableTypeWrapper.forTypeParameters(typeClass), this.variableResolver);
 		}
 		if (this.type instanceof ParameterizedType) {
@@ -1286,6 +1298,24 @@ public final class ResolvableType implements Serializable {
 		 * The various kinds of bounds.
 		 */
 		static enum Kind {UPPER, LOWER}
+	}
+	
+	/**
+	 * Internal class for wildcards on raw types
+	 */
+	private static class WildcardRawType implements WildcardType  {
+
+		private static final  Type[] EMPTY_ARRAY = new Type[0]; 
+		
+		@Override
+		public Type[] getUpperBounds() {
+			return EMPTY_ARRAY;
+		}
+
+		@Override
+		public Type[] getLowerBounds() {
+			return EMPTY_ARRAY;
+		}
 	}
 
 }

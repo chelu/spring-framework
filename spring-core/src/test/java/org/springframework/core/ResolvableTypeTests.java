@@ -1209,6 +1209,18 @@ public class ResolvableTypeTests {
 		assertTrue(type.getNested(2).isAssignableFrom(ResolvableType.forClass(BaseImplementation.class)));
 		assertEquals("java.util.Collection<org.springframework.core.ResolvableTypeTests$IBase<?>>", type.toString());
 	}
+	
+	@Test
+	public void testRawTypes() throws Exception {
+		ResolvableType rawList = ResolvableType.forField(Fields.class.getField("classType"));
+		ResolvableType stringList = ResolvableType.forField(Fields.class.getField("stringList"));
+		ResolvableType charSecuenceList = ResolvableType.forField(Fields.class.getField("charSequenceList"));
+		ResolvableType stringListList = ResolvableType.forField(Fields.class.getField("stringListList"));
+		ResolvableType listOfListOfUnknown = ResolvableType.forField(Fields.class.getField("listOfListOfUnknown"));
+		
+		assertAssignable(rawList, stringList, charSecuenceList, stringListList, listOfListOfUnknown)
+				.equalTo(true, true, true, true);
+	}
 
 
 	private ResolvableType testSerialization(ResolvableType type) throws Exception {
